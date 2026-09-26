@@ -14,44 +14,33 @@ jobs:
 
       - name: Unzip project
         run: |
-          echo "Listing root files:"
-          ls -la
-          
-          # Find the zip file
-          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
-          if [ -n "$ZIP_FILE" ]; then
-            echo "Found zip file: $ZIP_FILE"
-            mkdir -p extracted_project
-            unzip -q "$ZIP_FILE" -d extracted_project
-          else
-            echo "Error: No zip file found!"
-            exit 1
-          fi
+          unzip -q comfort_zone_flutter.zip -d extracted_project
 
-      - name: Set up Flutter
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.x'
+          flutter-version: '3.19.x'
           channel: 'stable'
+          cache: true
 
-      - name: Install Dependencies & Build APK
+      - name: Install dependencies
         run: |
-          # Locate pubspec.yaml inside extracted files
-          PROJECT_DIR=$(find . -name "pubspec.yaml" -maxdepth 3 | xargs dirname | head -n 1)
-          
-          if [ -n "$PROJECT_DIR" ]; then
-            echo "Found Flutter project at: $PROJECT_DIR"
-            cd "$PROJECT_DIR"
-            flutter pub get
-            flutter build apk --release
-          else
-            echo "Error: pubspec.yaml not found!"
-            exit 1
-          fi
+          cd extracted_project/cz
+          flutter pub get
 
-      - name: Upload APK Artifact
+      - name: Build APK
+        run: |
+          cd extracted_project/cz
+          flutter build apk --release
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: |
-            **/build/app/outputs/flutter-apk/app-release.apk
+          path: extracted_project/cz/build/app/outputs/flutter-apk/app-release.apk
