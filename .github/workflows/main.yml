@@ -1,0 +1,58 @@
+name: Build Flutter APK from Zip
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Unzip project
+        run: |
+          # Find and unzip the uploaded zip file
+          UNZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$UNZIP_FILE" ]; then
+            echo "Found zip file: $UNZIP_FILE"
+            unzip -q "$UNZIP_FILE" -d extracted_project
+            cd extracted_project
+          else
+            echo "No zip file found directly in root."
+          fi
+          
+          # If inside a nested folder structure, adjust accordingly
+          # Let's check contents
+          ls -la
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
+
+      - name: Install Dependencies & Build APK
+        run: |
+          # Navigate into the extracted project folder if it exists
+          if [ -d "extracted_project" ]; then
+            cd extracted_project
+          fi
+          
+          # Check if pubspec.yaml exists
+          if [ -f "pubspec.yaml" ]; then
+            flutter pub get
+            flutter build apk --release
+          else
+            echo "pubspec.yaml not found in the root of extracted files!"
+            exit 1
+          fi
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release
+          path: |
+            **/build/app/outputs/flutter-apk/app-release.apk
