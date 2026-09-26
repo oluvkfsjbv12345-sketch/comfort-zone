@@ -14,9 +14,7 @@ jobs:
 
       - name: Unzip project
         run: |
-          mkdir -p extracted_project
           unzip -q comfort_zone_flutter.zip -d extracted_project
-          ls -la extracted_project
 
       - name: Setup Java
         uses: actions/setup-java@v3
@@ -31,14 +29,9 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Find Project Directory and Build
+      - name: Install dependencies and Build APK
         run: |
-          cd extracted_project
-          # Automatically find the directory containing pubspec.yaml
-          PROJECT_DIR=$(find . -name "pubspec.yaml" -maxdepth 3 | xargs dirname)
-          echo "Found project at: $PROJECT_DIR"
-          cd "$PROJECT_DIR"
-          
+          cd extracted_project/cz
           flutter pub get
           flutter build apk --release
 
@@ -46,5 +39,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: |
-            extracted_project/**/build/app/outputs/flutter-apk/app-release.apk
+          path: extracted_project/cz/build/app/outputs/flutter-apk/app-release.apk
