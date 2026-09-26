@@ -14,19 +14,19 @@ jobs:
 
       - name: Unzip project
         run: |
-          # Find and unzip the uploaded zip file
-          UNZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
-          if [ -n "$UNZIP_FILE" ]; then
-            echo "Found zip file: $UNZIP_FILE"
-            unzip -q "$UNZIP_FILE" -d extracted_project
-            cd extracted_project
-          else
-            echo "No zip file found directly in root."
-          fi
-          
-          # If inside a nested folder structure, adjust accordingly
-          # Let's check contents
+          echo "Listing root files:"
           ls -la
+          
+          # Find the zip file
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found zip file: $ZIP_FILE"
+            mkdir -p extracted_project
+            unzip -q "$ZIP_FILE" -d extracted_project
+          else
+            echo "Error: No zip file found!"
+            exit 1
+          fi
 
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
@@ -36,17 +36,16 @@ jobs:
 
       - name: Install Dependencies & Build APK
         run: |
-          # Navigate into the extracted project folder if it exists
-          if [ -d "extracted_project" ]; then
-            cd extracted_project
-          fi
+          # Locate pubspec.yaml inside extracted files
+          PROJECT_DIR=$(find . -name "pubspec.yaml" -maxdepth 3 | xargs dirname | head -n 1)
           
-          # Check if pubspec.yaml exists
-          if [ -f "pubspec.yaml" ]; then
+          if [ -n "$PROJECT_DIR" ]; then
+            echo "Found Flutter project at: $PROJECT_DIR"
+            cd "$PROJECT_DIR"
             flutter pub get
             flutter build apk --release
           else
-            echo "pubspec.yaml not found in the root of extracted files!"
+            echo "Error: pubspec.yaml not found!"
             exit 1
           fi
 
